@@ -1,0 +1,258 @@
+.canvas {
+  flex: 1;
+  position: relative;
+  background: white;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  overflow: auto;
+  cursor: default;
+}
+
+.canvas.pan-mode {
+  cursor: grab;
+}
+
+.canvas.panning {
+  cursor: grabbing;
+}
+
+.canvas-zoom-wrapper {
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
+  transition: transform 0.2s ease-out;
+}
+
+.canvas.entity,
+.canvas.attribute,
+.canvas.keyAttribute,
+.canvas.relationship {
+  cursor: crosshair;
+}
+
+.canvas.connection {
+  cursor: crosshair;
+}
+
+.canvas.connection .element {
+  cursor: pointer;
+}
+
+.connections-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: all;
+  z-index: 1;
+}
+
+.elements-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.connection-hint {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 1rem 2rem;
+  background: rgba(102, 126, 234, 0.95);
+  color: white;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Connection Handles */
+.connection-handle {
+  position: absolute;
+  background: #2196F3;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: crosshair;
+  pointer-events: all;
+  z-index: 100;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.connection-handle:hover {
+  background: #667eea;
+  transform: scale(1.5);
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+}
+
+/* Connection Configuration Panel */
+.connection-config-panel {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  background: white;
+  border: 3px solid #667eea;
+  border-radius: 12px;
+  padding: 1.2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  width: 260px;
+}
+
+.connection-config-panel h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #667eea;
+  text-align: center;
+  padding-bottom: 0.6rem;
+  border-bottom: 3px solid #f0f0f0;
+  font-weight: 700;
+}
+
+.config-section {
+  margin-bottom: 1rem;
+}
+
+.config-section > label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 0.6rem;
+  text-align: center;
+  background: #f8f9fa;
+  padding: 0.5rem;
+  border-radius: 6px;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.button-group.cardinality-group {
+  flex-direction: row;
+}
+
+.button-group button {
+  flex: 1;
+  padding: 0.8rem 0.6rem;
+  border: 2px solid #ddd;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.button-group button:hover {
+  border-color: #667eea;
+  background: #f8f9fa;
+  transform: translateY(-1px);
+}
+
+.button-group button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.config-instruction {
+  margin-top: 1rem;
+  padding: 0.7rem;
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #856404;
+  font-weight: 600;
+}
+
+/* Connection Edit Panel (when clicking existing connection) */
+.connection-edit-panel {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  background: white;
+  border: 3px solid #667eea;
+  border-radius: 12px;
+  padding: 1.2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  width: 260px;
+}
+
+.connection-edit-panel h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #667eea;
+  text-align: center;
+  padding-bottom: 0.6rem;
+  border-bottom: 3px solid #f0f0f0;
+  font-weight: 700;
+}
+
+.connection-edit-panel .delete-btn {
+  width: 100%;
+  padding: 0.8rem;
+  background: #fff;
+  border: 2px solid #e53e3e;
+  border-radius: 8px;
+  color: #e53e3e;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.connection-edit-panel .delete-btn:hover {
+  background: #e53e3e;
+  color: white;
+}
+
+.connection-edit-panel .close-btn {
+  width: 100%;
+  padding: 0.7rem;
+  margin-top: 0.8rem;
+  background: #f8f9fa;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.connection-edit-panel .close-btn:hover {
+  border-color: #667eea;
+  background: white;
+}
+
+@media (max-width: 768px) {
+  .connection-config-panel,
+  .connection-edit-panel {
+    right: 10px;
+    top: 80px;
+    width: 200px;
+    padding: 0.8rem;
+  }
+
+  .button-group button {
+    font-size: 0.7rem;
+    padding: 0.5rem 0.3rem;
+  }
+}

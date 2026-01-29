@@ -1,0 +1,80 @@
+.element {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 2px solid #333;
+  cursor: move;
+  user-select: none;
+  pointer-events: all;
+  transition: box-shadow 0.2s;
+}
+
+.element:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Highlight elements in connection mode */
+.connection .element:hover {
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4);
+  transform: scale(1.05);
+}
+
+.element.selected {
+  border-color: #2196F3;
+  border-width: 3px;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+}
+
+/* Entity - Rectangle */
+.element.entity {
+  border-radius: 4px;
+}
+
+/* Attribute - Oval */
+.element.attribute {
+  border-radius: 50%;
+}
+
+/* Relationship - Diamond (now handled by SVG in component) */
+.element.relationship {
+  background: transparent;
+  border: none;
+}
+
+.element.relationship.selected {
+  box-shadow: none;
+}
+
+/* Text styling */
+.element-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+  padding: 0.5rem;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.element-text.underline {
+  text-decoration: underline;
+}
+
+/* Input for editing */
+.element-input {
+  width: 90%;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  outline: none;
+  padding: 0.5rem;
+}
+
+/* Key attribute specific styling */
+.element.attribute.key .element-text {
+  text-decoration: underline;
+}
