@@ -6,11 +6,47 @@ import { exportToPNG, exportToPDF } from './utils/export'
 
 function App() {
   const [tool, setTool] = useState('select') // select, entity, attribute, keyAttribute, relationship
-  const [elements, setElements] = useState([])
-  const [connections, setConnections] = useState([])
+  const [elements, setElements] = useState(() => {
+    try {
+      const saved = localStorage.getItem('er-diagram-autosave')
+      if (saved) {
+        const data = JSON.parse(saved)
+        return data.elements || []
+      }
+    } catch {}
+    return []
+  })
+  const [connections, setConnections] = useState(() => {
+    try {
+      const saved = localStorage.getItem('er-diagram-autosave')
+      if (saved) {
+        const data = JSON.parse(saved)
+        return data.connections || []
+      }
+    } catch {}
+    return []
+  })
   const [selectedElement, setSelectedElement] = useState(null)
   const [zoom, setZoom] = useState(1)
+  const [elementScale, setElementScale] = useState(() => {
+    try {
+      const saved = localStorage.getItem('er-diagram-element-scale')
+      if (saved) return parseFloat(saved)
+    } catch {}
+    return 1
+  })
   const canvasRef = useRef(null)
+
+  // Auto-save to localStorage
+  useEffect(() => {
+    const data = { elements, connections, version: '1.0' }
+    localStorage.setItem('er-diagram-autosave', JSON.stringify(data))
+  }, [elements, connections])
+
+  // Save element scale
+  useEffect(() => {
+    localStorage.setItem('er-diagram-element-scale', String(elementScale))
+  }, [elementScale])
 
   const addElement = (element) => {
     setElements([...elements, { ...element, id: Date.now() }])
@@ -45,6 +81,7 @@ function App() {
       setElements([])
       setConnections([])
       setSelectedElement(null)
+      localStorage.removeItem('er-diagram-autosave')
     }
   }
 
@@ -182,6 +219,8 @@ function App() {
           deleteConnection={deleteConnection}
           zoom={zoom}
           setZoom={setZoom}
+          elementScale={elementScale}
+          setElementScale={setElementScale}
         />
       </div>
     </div>

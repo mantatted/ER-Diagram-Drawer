@@ -19,7 +19,9 @@ const Canvas = forwardRef(({
   updateConnection,
   deleteConnection,
   zoom,
-  setZoom
+  setZoom,
+  elementScale,
+  setElementScale
 }, ref) => {
   const [draggingElement, setDraggingElement] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
@@ -37,6 +39,13 @@ const Canvas = forwardRef(({
   const [editingConnection, setEditingConnection] = useState(null)
   const [canvasSize, setCanvasSize] = useState({ width: 3000, height: 2000 })
   const [spacePressed, setSpacePressed] = useState(false)
+
+  // Compute scaled elements for rendering
+  const scaledElements = elements.map(el => ({
+    ...el,
+    width: el.width * elementScale,
+    height: el.height * elementScale
+  }))
 
   // Keyboard listeners for space key (pan mode) and delete key
   useEffect(() => {
@@ -116,54 +125,54 @@ const Canvas = forwardRef(({
       const y = (e.clientY - rect.top) / zoom
 
       if (tool === 'entity') {
+        const w = 120, h = 60
         const newElement = {
           type: 'entity',
-          x: x - 60,
-          y: y - 30,
-          width: 120,
-          height: 60,
+          x: x - (w * elementScale) / 2,
+          y: y - (h * elementScale) / 2,
+          width: w,
+          height: h,
           text: 'Entity'
         }
         addElement(newElement)
-        // Auto-switch to select mode after placing
         setTool('select')
       } else if (tool === 'attribute') {
+        const w = 100, h = 50
         const newElement = {
           type: 'attribute',
-          x: x - 50,
-          y: y - 25,
-          width: 100,
-          height: 50,
+          x: x - (w * elementScale) / 2,
+          y: y - (h * elementScale) / 2,
+          width: w,
+          height: h,
           text: 'Attribute',
           isKey: false
         }
         addElement(newElement)
-        // Auto-switch to select mode after placing
         setTool('select')
       } else if (tool === 'keyAttribute') {
+        const w = 100, h = 50
         const newElement = {
           type: 'attribute',
-          x: x - 50,
-          y: y - 25,
-          width: 100,
-          height: 50,
+          x: x - (w * elementScale) / 2,
+          y: y - (h * elementScale) / 2,
+          width: w,
+          height: h,
           text: 'Attribute',
           isKey: true
         }
         addElement(newElement)
-        // Auto-switch to select mode after placing
         setTool('select')
       } else if (tool === 'relationship') {
+        const w = 120, h = 80
         const newElement = {
           type: 'relationship',
-          x: x - 60,
-          y: y - 40,
-          width: 120,
-          height: 80,
+          x: x - (w * elementScale) / 2,
+          y: y - (h * elementScale) / 2,
+          width: w,
+          height: h,
           text: 'Relationship'
         }
         addElement(newElement)
-        // Auto-switch to select mode after placing
         setTool('select')
       } else if (tool === 'select') {
         setSelectedElement(null)
@@ -374,8 +383,8 @@ const Canvas = forwardRef(({
       >
         <svg className="connections-layer" style={{ width: '100%', height: '100%' }}>
         {connections.map(conn => {
-          const fromEl = elements.find(el => el.id === conn.from)
-          const toEl = elements.find(el => el.id === conn.to)
+          const fromEl = scaledElements.find(el => el.id === conn.from)
+          const toEl = scaledElements.find(el => el.id === conn.to)
           if (!fromEl || !toEl) return null
 
           const from = getElementCenter(fromEl)
@@ -409,7 +418,7 @@ const Canvas = forwardRef(({
       </svg>
 
       <div className="elements-layer">
-        {elements.map(element => {
+        {scaledElements.map(element => {
           const isSelected = selectedElement?.id === element.id
           const isHovered = hoveredElement?.id === element.id
           const showHandles = (isSelected || isHovered) && tool === 'select'
@@ -555,6 +564,19 @@ const Canvas = forwardRef(({
           onClose={() => setEditingConnection(null)}
         />
       )}
+
+      <div className="size-slider-container">
+        <label>Size</label>
+        <input
+          type="range"
+          min="0.5"
+          max="2"
+          step="0.05"
+          value={elementScale}
+          onChange={(e) => setElementScale(parseFloat(e.target.value))}
+        />
+        <span>{Math.round(elementScale * 100)}%</span>
+      </div>
     </div>
   )
 })
