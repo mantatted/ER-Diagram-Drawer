@@ -201,6 +201,7 @@ function App() {
           onDeleteElement={deleteElement}
           zoom={zoom}
           onResetZoom={handleResetZoom}
+          onClearAll={clearCanvas}
         />
 
         <Canvas

@@ -6,7 +6,8 @@ function Toolbar({
   selectedElement,
   onDeleteElement,
   zoom,
-  onResetZoom
+  onResetZoom,
+  onClearAll
 }) {
   const tools = [
     { id: 'select', label: 'Select', icon: '➤', description: 'Select and move elements, drag from edges to connect' },
@@ -46,6 +47,20 @@ function Toolbar({
           >
             <span>{Math.round(zoom * 100)}%</span>
             <span style={{ fontSize: '0.65rem' }}>Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="toolbar-section">
+        <h3>Canvas</h3>
+        <div className="file-buttons">
+          <button
+            className="action-btn danger"
+            onClick={onClearAll}
+            title="Clear all elements and connections"
+          >
+            <span>🗑️</span>
+            <span>Clear All</span>
           </button>
         </div>
       </div>

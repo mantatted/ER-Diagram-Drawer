@@ -396,6 +396,8 @@ const Canvas = forwardRef(({
               connection={conn}
               from={from}
               to={to}
+              fromType={fromEl.type}
+              toType={toEl.type}
               updateConnection={updateConnection}
               deleteConnection={deleteConnection}
               onClick={() => setEditingConnection(conn)}
@@ -558,7 +560,7 @@ const Canvas = forwardRef(({
 
       {editingConnection && (
         <ConnectionEditPanel
-          connection={editingConnection}
+          connection={connections.find(c => c.id === editingConnection.id) || editingConnection}
           updateConnection={updateConnection}
           deleteConnection={deleteConnection}
           onClose={() => setEditingConnection(null)}

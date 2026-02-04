@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './Connection.css'
 
-function Connection({ connection, from, to, updateConnection, deleteConnection, onClick, isSelected }) {
+function Connection({ connection, from, to, fromType, toType, updateConnection, deleteConnection, onClick, isSelected }) {
   const [isHovered, setIsHovered] = useState(false)
 
   const midX = (from.x + to.x) / 2
@@ -12,17 +12,10 @@ function Connection({ connection, from, to, updateConnection, deleteConnection, 
     onClick()
   }
 
-  const updateCardinality = (value) => {
-    updateConnection(connection.id, {
-      cardinality: value
-    })
-  }
-
-  const updateParticipation = (value) => {
-    updateConnection(connection.id, {
-      participation: value
-    })
-  }
+  // Check if this is an entity-attribute connection (should be simple line)
+  const isAttributeConnection =
+    (fromType === 'entity' && toType === 'attribute') ||
+    (fromType === 'attribute' && toType === 'entity')
 
   // Calculate offset for labels
   const dx = to.x - from.x
@@ -60,39 +53,44 @@ function Connection({ connection, from, to, updateConnection, deleteConnection, 
         style={{ cursor: 'pointer' }}
       />
 
-      {/* Participation constraint at CENTER */}
-      {participation === 'mandatory' ? (
-        <line
-          x1={midX + normalX * 10}
-          y1={midY + normalY * 10}
-          x2={midX - normalX * 10}
-          y2={midY - normalY * 10}
-          stroke="#333"
-          strokeWidth="4"
-        />
-      ) : (
-        <circle
-          cx={midX}
-          cy={midY}
-          r="7"
-          fill="white"
-          stroke="#333"
-          strokeWidth="3"
-        />
-      )}
+      {/* Only show participation and cardinality for non-attribute connections */}
+      {!isAttributeConnection && (
+        <>
+          {/* Participation constraint at CENTER */}
+          {participation === 'mandatory' ? (
+            <line
+              x1={midX + normalX * 10}
+              y1={midY + normalY * 10}
+              x2={midX - normalX * 10}
+              y2={midY - normalY * 10}
+              stroke="#333"
+              strokeWidth="4"
+            />
+          ) : (
+            <circle
+              cx={midX}
+              cy={midY}
+              r="7"
+              fill="white"
+              stroke="#333"
+              strokeWidth="3"
+            />
+          )}
 
-      {/* Cardinality label */}
-      <text
-        x={midX + normalX * labelOffset}
-        y={midY + normalY * labelOffset}
-        fontSize="16"
-        fontWeight="bold"
-        fill="#333"
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        {cardinality}
-      </text>
+          {/* Cardinality label */}
+          <text
+            x={midX + normalX * labelOffset}
+            y={midY + normalY * labelOffset}
+            fontSize="16"
+            fontWeight="bold"
+            fill="#333"
+            textAnchor="middle"
+            dominantBaseline="middle"
+          >
+            {cardinality}
+          </text>
+        </>
+      )}
 
     </g>
   )
