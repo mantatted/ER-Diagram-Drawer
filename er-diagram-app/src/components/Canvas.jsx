@@ -568,16 +568,16 @@ const Canvas = forwardRef(({
       )}
 
       <div className="size-slider-container">
-        <label>Size</label>
+        <label>Zoom</label>
         <input
           type="range"
-          min="0.5"
-          max="2"
-          step="0.05"
-          value={elementScale}
-          onChange={(e) => setElementScale(parseFloat(e.target.value))}
+          min="0.3"
+          max="3"
+          step="0.1"
+          value={zoom}
+          onChange={(e) => setZoom(parseFloat(e.target.value))}
         />
-        <span>{Math.round(elementScale * 100)}%</span>
+        <span>{Math.round(zoom * 100)}%</span>
       </div>
     </div>
   )
