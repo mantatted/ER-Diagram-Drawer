@@ -54,8 +54,7 @@
   color: #333;
   text-align: center;
   padding: 0.5rem;
-  word-break: break-word;
-  max-width: 100%;
+  white-space: nowrap;
 }
 
 .element-text.underline {

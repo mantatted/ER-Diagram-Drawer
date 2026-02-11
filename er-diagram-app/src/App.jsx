@@ -26,7 +26,7 @@ function App() {
     } catch {}
     return []
   })
-  const [selectedElement, setSelectedElement] = useState(null)
+  const [selectedElements, setSelectedElements] = useState([])
   const [zoom, setZoom] = useState(1)
   const [elementScale, setElementScale] = useState(() => {
     try {
@@ -36,6 +36,82 @@ function App() {
     return 1
   })
   const canvasRef = useRef(null)
+
+  // Undo history stack (snapshots of { elements, connections })
+  const historyRef = useRef([])
+  const historyIndexRef = useRef(-1)
+  const isRestoringRef = useRef(false)
+
+  // Clipboard for copy/paste
+  const clipboardRef = useRef(null)
+
+  const pushHistory = (els, conns) => {
+    // Truncate any forward history
+    historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1)
+    historyRef.current.push({
+      elements: JSON.parse(JSON.stringify(els)),
+      connections: JSON.parse(JSON.stringify(conns))
+    })
+    // Cap at 50 entries
+    if (historyRef.current.length > 50) {
+      historyRef.current.shift()
+    } else {
+      historyIndexRef.current++
+    }
+  }
+
+  const undo = () => {
+    if (historyIndexRef.current < 0) return
+    const snapshot = historyRef.current[historyIndexRef.current]
+    historyIndexRef.current--
+    isRestoringRef.current = true
+    setElements(snapshot.elements)
+    setConnections(snapshot.connections)
+    setSelectedElements([])
+    // Reset restoring flag after state update
+    setTimeout(() => { isRestoringRef.current = false }, 0)
+  }
+
+  const copySelected = () => {
+    if (selectedElements.length === 0) return
+    const selectedSet = new Set(selectedElements)
+    const copiedElements = elements.filter(el => selectedSet.has(el.id)).map(el => ({ ...el }))
+    const copiedConnections = connections.filter(
+      conn => selectedSet.has(conn.from) && selectedSet.has(conn.to)
+    ).map(conn => ({ ...conn }))
+    clipboardRef.current = {
+      elements: JSON.parse(JSON.stringify(copiedElements)),
+      connections: JSON.parse(JSON.stringify(copiedConnections))
+    }
+  }
+
+  const pasteClipboard = () => {
+    if (!clipboardRef.current) return
+    const { elements: clipEls, connections: clipConns } = clipboardRef.current
+
+    // Generate new IDs and build old-to-new mapping
+    const idMap = {}
+    const now = Date.now()
+    const newElements = clipEls.map((el, i) => {
+      const newId = now + i
+      idMap[el.id] = newId
+      return { ...el, id: newId, x: el.x + 20, y: el.y + 20 }
+    })
+
+    const newConnections = clipConns.map((conn, i) => ({
+      ...conn,
+      id: now + clipEls.length + i,
+      from: idMap[conn.from],
+      to: idMap[conn.to]
+    }))
+
+    // Push history before mutation
+    pushHistory(elements, connections)
+
+    setElements(prev => [...prev, ...newElements])
+    setConnections(prev => [...prev, ...newConnections])
+    setSelectedElements(newElements.map(el => el.id))
+  }
 
   // Auto-save to localStorage
   useEffect(() => {
@@ -49,38 +125,60 @@ function App() {
   }, [elementScale])
 
   const addElement = (element) => {
-    setElements([...elements, { ...element, id: Date.now() }])
+    pushHistory(elements, connections)
+    setElements(prev => [...prev, { ...element, id: Date.now() }])
   }
 
   const updateElement = (id, updates) => {
-    setElements(elements.map(el => el.id === id ? { ...el, ...updates } : el))
+    if (!isRestoringRef.current) pushHistory(elements, connections)
+    setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el))
+  }
+
+  const updateElements = (updates) => {
+    // updates: [{ id, changes }, ...]
+    if (!isRestoringRef.current) pushHistory(elements, connections)
+    setElements(prev => prev.map(el => {
+      const u = updates.find(up => up.id === el.id)
+      return u ? { ...el, ...u.changes } : el
+    }))
   }
 
   const deleteElement = (id) => {
-    setElements(elements.filter(el => el.id !== id))
-    setConnections(connections.filter(conn => conn.from !== id && conn.to !== id))
-    if (selectedElement?.id === id) {
-      setSelectedElement(null)
-    }
+    pushHistory(elements, connections)
+    setElements(prev => prev.filter(el => el.id !== id))
+    setConnections(prev => prev.filter(conn => conn.from !== id && conn.to !== id))
+    setSelectedElements(prev => prev.filter(eid => eid !== id))
+  }
+
+  const deleteElements = (ids) => {
+    pushHistory(elements, connections)
+    const idSet = new Set(ids)
+    setElements(prev => prev.filter(el => !idSet.has(el.id)))
+    setConnections(prev => prev.filter(conn => !idSet.has(conn.from) && !idSet.has(conn.to)))
+    setSelectedElements(prev => prev.filter(eid => !idSet.has(eid)))
   }
 
   const addConnection = (connection) => {
-    setConnections([...connections, { ...connection, id: Date.now() }])
+    pushHistory(elements, connections)
+    setConnections(prev => [...prev, { ...connection, id: Date.now() }])
   }
 
   const updateConnection = (id, updates) => {
-    setConnections(connections.map(conn => conn.id === id ? { ...conn, ...updates } : conn))
+    pushHistory(elements, connections)
+    setConnections(prev => prev.map(conn => conn.id === id ? { ...conn, ...updates } : conn))
   }
 
   const deleteConnection = (id) => {
-    setConnections(connections.filter(conn => conn.id !== id))
+    pushHistory(elements, connections)
+    setConnections(prev => prev.filter(conn => conn.id !== id))
   }
 
   const clearCanvas = () => {
     if (window.confirm('Are you sure you want to clear the canvas?')) {
+      pushHistory(elements, connections)
       setElements([])
       setConnections([])
-      setSelectedElement(null)
+      setSelectedElements([])
       localStorage.removeItem('er-diagram-autosave')
     }
   }
@@ -107,9 +205,10 @@ function App() {
       reader.onload = (e) => {
         try {
           const data = JSON.parse(e.target.result)
+          pushHistory(elements, connections)
           setElements(data.elements || [])
           setConnections(data.connections || [])
-          setSelectedElement(null)
+          setSelectedElements([])
         } catch (error) {
           alert('Error loading file: ' + error.message)
         }
@@ -197,8 +296,10 @@ function App() {
         <Toolbar
           tool={tool}
           setTool={setTool}
-          selectedElement={selectedElement}
+          selectedElements={selectedElements}
+          elements={elements}
           onDeleteElement={deleteElement}
+          onDeleteElements={deleteElements}
           zoom={zoom}
           onResetZoom={handleResetZoom}
           onClearAll={clearCanvas}
@@ -210,11 +311,13 @@ function App() {
           setTool={setTool}
           elements={elements}
           connections={connections}
-          selectedElement={selectedElement}
-          setSelectedElement={setSelectedElement}
+          selectedElements={selectedElements}
+          setSelectedElements={setSelectedElements}
           addElement={addElement}
           updateElement={updateElement}
+          updateElements={updateElements}
           deleteElement={deleteElement}
+          deleteElements={deleteElements}
           addConnection={addConnection}
           updateConnection={updateConnection}
           deleteConnection={deleteConnection}
@@ -222,6 +325,9 @@ function App() {
           setZoom={setZoom}
           elementScale={elementScale}
           setElementScale={setElementScale}
+          undo={undo}
+          copySelected={copySelected}
+          pasteClipboard={pasteClipboard}
         />
       </div>
     </div>

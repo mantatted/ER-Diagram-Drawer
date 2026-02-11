@@ -3,12 +3,18 @@ import './Toolbar.css'
 function Toolbar({
   tool,
   setTool,
-  selectedElement,
+  selectedElements,
+  elements,
   onDeleteElement,
+  onDeleteElements,
   zoom,
   onResetZoom,
   onClearAll
 }) {
+  const selectedCount = selectedElements.length
+  const singleSelected = selectedCount === 1
+    ? elements.find(el => el.id === selectedElements[0])
+    : null
   const tools = [
     { id: 'select', label: 'Select', icon: '➤', description: 'Select and move elements, drag from edges to connect' },
     { id: 'entity', label: 'Entity', icon: '▭', description: 'Rectangle - Entity' },
@@ -65,19 +71,39 @@ function Toolbar({
         </div>
       </div>
 
-      {selectedElement && (
+      {singleSelected && (
         <div className="toolbar-section">
           <h3>Selected</h3>
           <div className="selected-info">
-            <p><strong>Type:</strong> {selectedElement.type}</p>
-            <p><strong>Text:</strong> {selectedElement.text}</p>
+            <p><strong>Type:</strong> {singleSelected.type}</p>
+            <p><strong>Text:</strong> {singleSelected.text}</p>
             <button
               className="action-btn danger"
-              onClick={() => onDeleteElement(selectedElement.id)}
+              onClick={() => onDeleteElement(singleSelected.id)}
               title="Delete (or press Delete key)"
             >
               <span>🗑️</span>
               <span>Delete</span>
+            </button>
+            <p style={{ fontSize: '0.65rem', color: '#666', marginTop: '0.5rem', textAlign: 'center' }}>
+              Press DELETE key
+            </p>
+          </div>
+        </div>
+      )}
+
+      {selectedCount > 1 && (
+        <div className="toolbar-section">
+          <h3>Selected</h3>
+          <div className="selected-info">
+            <p><strong>{selectedCount} elements</strong> selected</p>
+            <button
+              className="action-btn danger"
+              onClick={() => onDeleteElements(selectedElements)}
+              title="Delete all selected (or press Delete key)"
+            >
+              <span>🗑️</span>
+              <span>Delete All</span>
             </button>
             <p style={{ fontSize: '0.65rem', color: '#666', marginTop: '0.5rem', textAlign: 'center' }}>
               Press DELETE key

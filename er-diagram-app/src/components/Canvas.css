@@ -76,6 +76,15 @@
   pointer-events: none;
 }
 
+/* Selection Rectangle */
+.selection-rect {
+  position: absolute;
+  border: 2px dashed #2196F3;
+  background: rgba(33, 150, 243, 0.1);
+  pointer-events: none;
+  z-index: 50;
+}
+
 /* Connection Handles */
 .connection-handle {
   position: absolute;

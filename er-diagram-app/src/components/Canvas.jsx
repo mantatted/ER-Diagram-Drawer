@@ -1,4 +1,4 @@
-import { forwardRef, useState, useEffect } from 'react'
+import { forwardRef, useState, useEffect, useRef } from 'react'
 import './Canvas.css'
 import Entity from './Entity'
 import Attribute from './Attribute'
@@ -10,18 +10,23 @@ const Canvas = forwardRef(({
   setTool,
   elements,
   connections,
-  selectedElement,
-  setSelectedElement,
+  selectedElements,
+  setSelectedElements,
   addElement,
   updateElement,
+  updateElements,
   deleteElement,
+  deleteElements,
   addConnection,
   updateConnection,
   deleteConnection,
   zoom,
   setZoom,
   elementScale,
-  setElementScale
+  setElementScale,
+  undo,
+  copySelected,
+  pasteClipboard
 }, ref) => {
   const [draggingElement, setDraggingElement] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
@@ -39,6 +44,8 @@ const Canvas = forwardRef(({
   const [editingConnection, setEditingConnection] = useState(null)
   const [canvasSize, setCanvasSize] = useState({ width: 3000, height: 2000 })
   const [spacePressed, setSpacePressed] = useState(false)
+  const [selectionRect, setSelectionRect] = useState(null)
+  const justFinishedMarquee = useRef(false)
 
   // Compute scaled elements for rendering
   const scaledElements = elements.map(el => ({
@@ -50,16 +57,26 @@ const Canvas = forwardRef(({
   // Keyboard listeners for space key (pan mode) and delete key
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const activeEl = document.activeElement
+      const isEditing = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA'
+
       if (e.code === 'Space' && !e.repeat) {
         e.preventDefault()
         setSpacePressed(true)
-      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElement) {
-        // Check if not editing text (input or textarea focused)
-        const activeElement = document.activeElement
-        if (activeElement.tagName !== 'INPUT' && activeElement.tagName !== 'TEXTAREA') {
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElements.length > 0) {
+        if (!isEditing) {
           e.preventDefault()
-          deleteElement(selectedElement.id)
+          deleteElements(selectedElements)
         }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !isEditing) {
+        e.preventDefault()
+        undo()
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !isEditing) {
+        e.preventDefault()
+        copySelected()
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'y' && !isEditing) {
+        e.preventDefault()
+        pasteClipboard()
       }
     }
 
@@ -78,7 +95,7 @@ const Canvas = forwardRef(({
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [selectedElement, deleteElement])
+  }, [selectedElements, deleteElements, undo, copySelected, pasteClipboard])
 
   // Handle zoom with Ctrl+Scroll (like draw.io)
   const handleWheel = (e) => {
@@ -110,6 +127,17 @@ const Canvas = forwardRef(({
         scrollLeft: parent.scrollLeft,
         scrollTop: parent.scrollTop
       })
+    } else if (tool === 'select' && e.button === 0 && !spacePressed) {
+      // Check if clicking on canvas background (not on an element)
+      const isCanvasBackground = e.target.classList.contains('canvas') ||
+                                 e.target.classList.contains('connections-layer') ||
+                                 e.target.tagName === 'svg'
+      if (isCanvasBackground) {
+        const rect = e.currentTarget.getBoundingClientRect()
+        const x = (e.clientX - rect.left) / zoom
+        const y = (e.clientY - rect.top) / zoom
+        setSelectionRect({ startX: x, startY: y, endX: x, endY: y })
+      }
     }
   }
 
@@ -175,7 +203,9 @@ const Canvas = forwardRef(({
         addElement(newElement)
         setTool('select')
       } else if (tool === 'select') {
-        setSelectedElement(null)
+        if (!justFinishedMarquee.current) {
+          setSelectedElements([])
+        }
       }
     }
   }
@@ -184,12 +214,16 @@ const Canvas = forwardRef(({
     e.stopPropagation()
 
     if (tool === 'select' && !spacePressed) {
-      setSelectedElement(element)
+      // If the element is not already selected, select only it
+      if (!selectedElements.includes(element.id)) {
+        setSelectedElements([element.id])
+      }
+      // If already selected (part of multi-select), keep selection as-is for multi-drag
       setDraggingElement(element)
-      
+
       const canvasEl = e.currentTarget.closest('.canvas')
       const rect = canvasEl.getBoundingClientRect()
-      
+
       setDragOffset({
         x: (e.clientX - rect.left) / zoom - element.x,
         y: (e.clientY - rect.top) / zoom - element.y
@@ -222,14 +256,14 @@ const Canvas = forwardRef(({
       } else if (!connectingFrom) {
         // First click - start connection
         setConnectingFrom(element)
-        setSelectedElement(element)
+        setSelectedElements([element.id])
       } else {
         // Clicked same element - cancel
         setConnectingFrom(null)
         setTempConnection(null)
       }
     } else {
-      setSelectedElement(element)
+      setSelectedElements([element.id])
     }
   }
 
@@ -279,15 +313,42 @@ const Canvas = forwardRef(({
       const parent = e.currentTarget.parentElement
       parent.scrollLeft = panStart.scrollLeft - deltaX
       parent.scrollTop = panStart.scrollTop - deltaY
+    } else if (selectionRect) {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const x = (e.clientX - rect.left) / zoom
+      const y = (e.clientY - rect.top) / zoom
+      setSelectionRect(prev => ({ ...prev, endX: x, endY: y }))
     } else if (draggingElement && !draggingConnection) {
       const rect = e.currentTarget.getBoundingClientRect()
       const newX = (e.clientX - rect.left) / zoom
       const newY = (e.clientY - rect.top) / zoom
 
-      updateElement(draggingElement.id, {
+      const deltaX = (newX - dragOffset.x) - draggingElement.x
+      const deltaY = (newY - dragOffset.y) - draggingElement.y
+
+      // Move all selected elements together
+      if (selectedElements.includes(draggingElement.id) && selectedElements.length > 1) {
+        const updates = selectedElements
+          .map(id => {
+            const el = scaledElements.find(e => e.id === id)
+            if (!el) return null
+            return { id, changes: { x: el.x + deltaX, y: el.y + deltaY } }
+          })
+          .filter(Boolean)
+        updateElements(updates)
+      } else {
+        updateElement(draggingElement.id, {
+          x: newX - dragOffset.x,
+          y: newY - dragOffset.y
+        })
+      }
+
+      // Update draggingElement reference for next delta calculation
+      setDraggingElement(prev => ({
+        ...prev,
         x: newX - dragOffset.x,
         y: newY - dragOffset.y
-      })
+      }))
     } else if (draggingConnection && connectingFrom) {
       const rect = e.currentTarget.getBoundingClientRect()
       const handlePos = getHandlePosition(connectingFrom.element, connectingFrom.handlePosition)
@@ -330,6 +391,30 @@ const Canvas = forwardRef(({
   }
 
   const handleMouseUp = (e) => {
+    if (selectionRect) {
+      // Compute bounding box of selection rectangle
+      const x1 = Math.min(selectionRect.startX, selectionRect.endX)
+      const y1 = Math.min(selectionRect.startY, selectionRect.endY)
+      const x2 = Math.max(selectionRect.startX, selectionRect.endX)
+      const y2 = Math.max(selectionRect.startY, selectionRect.endY)
+
+      // Only select if the rectangle is non-trivial (more than 5px drag)
+      if (Math.abs(x2 - x1) > 5 || Math.abs(y2 - y1) > 5) {
+        const selected = scaledElements
+          .filter(el => {
+            const elRight = el.x + el.width
+            const elBottom = el.y + el.height
+            // Element overlaps with selection rectangle
+            return el.x < x2 && elRight > x1 && el.y < y2 && elBottom > y1
+          })
+          .map(el => el.id)
+        setSelectedElements(selected)
+        justFinishedMarquee.current = true
+        requestAnimationFrame(() => { justFinishedMarquee.current = false })
+      }
+      setSelectionRect(null)
+      return
+    }
     if (isPanning) {
       setIsPanning(false)
     } else if (draggingConnection && connectingFrom && hoveredElement) {
@@ -351,8 +436,39 @@ const Canvas = forwardRef(({
     setTempConnection(null)
   }
 
+  const measureTextWidth = (text) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    ctx.font = '500 14px sans-serif'
+    return ctx.measureText(text).width
+  }
+
   const handleTextChange = (element, newText) => {
-    updateElement(element.id, { text: newText })
+    const textWidth = measureTextWidth(newText)
+
+    // Minimum rendered width needed per element type
+    let neededRenderedWidth
+    if (element.type === 'entity') {
+      neededRenderedWidth = textWidth + 32
+    } else if (element.type === 'attribute') {
+      // Oval shape: text needs ~1.5x width to fit inside ellipse
+      neededRenderedWidth = textWidth * 1.5 + 16
+    } else if (element.type === 'relationship') {
+      neededRenderedWidth = textWidth + 60
+    } else {
+      neededRenderedWidth = textWidth + 32
+    }
+
+    // Convert to base width (before elementScale)
+    const neededBaseWidth = neededRenderedWidth / elementScale
+
+    // Default minimum widths per type
+    const defaultMin = { entity: 120, attribute: 100, relationship: 120 }
+    const minWidth = defaultMin[element.type] || 100
+
+    const newBaseWidth = Math.max(minWidth, neededBaseWidth)
+
+    updateElement(element.id, { text: newText, width: newBaseWidth })
   }
 
   const getElementCenter = (element) => {
@@ -421,9 +537,10 @@ const Canvas = forwardRef(({
 
       <div className="elements-layer">
         {scaledElements.map(element => {
-          const isSelected = selectedElement?.id === element.id
+          const isSelected = selectedElements.includes(element.id)
           const isHovered = hoveredElement?.id === element.id
-          const showHandles = (isSelected || isHovered) && tool === 'select'
+          const singleSelected = selectedElements.length === 1 && isSelected
+          const showHandles = (singleSelected || isHovered) && tool === 'select'
 
           const renderElement = () => {
             if (element.type === 'entity') {
@@ -498,6 +615,18 @@ const Canvas = forwardRef(({
           )
         })}
       </div>
+
+      {selectionRect && (
+        <div
+          className="selection-rect"
+          style={{
+            left: Math.min(selectionRect.startX, selectionRect.endX),
+            top: Math.min(selectionRect.startY, selectionRect.endY),
+            width: Math.abs(selectionRect.endX - selectionRect.startX),
+            height: Math.abs(selectionRect.endY - selectionRect.startY)
+          }}
+        />
+      )}
       </div>
 
       {tool === 'connection' && connectingFrom && (
