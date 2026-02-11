@@ -49,7 +49,7 @@
 
 /* Text styling */
 .element-text {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: #333;
   text-align: center;
@@ -66,7 +66,7 @@
   width: 90%;
   border: none;
   background: transparent;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   text-align: center;
   outline: none;

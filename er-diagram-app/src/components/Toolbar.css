@@ -132,29 +132,6 @@
   background: #f0f0f0;
 }
 
-.selected-info {
-  padding: 0.5rem;
-  background: white;
-  border-radius: 6px;
-  border: 2px solid #667eea;
-}
-
-.selected-info p {
-  margin: 0.2rem 0;
-  font-size: 0.7rem;
-  word-break: break-word;
-}
-
-.selected-info strong {
-  display: block;
-  font-size: 0.65rem;
-}
-
-.selected-info button {
-  margin-top: 0.5rem;
-  width: 100%;
-}
-
 .standard-info {
   padding: 0.5rem;
   background: white;

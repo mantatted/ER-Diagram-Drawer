@@ -75,10 +75,10 @@ function Relationship({ element, isSelected, onMouseDown, onClick, onTextChange 
             onKeyDown={handleKeyDown}
             autoFocus
             className="element-input"
-            style={{ pointerEvents: 'all' }}
+            style={{ pointerEvents: 'all', fontSize: element.fontSize || 16 }}
           />
         ) : (
-          <span className="element-text" style={{ pointerEvents: 'none' }}>
+          <span className="element-text" style={{ pointerEvents: 'none', fontSize: element.fontSize || 16 }}>
             {element.text}
           </span>
         )}

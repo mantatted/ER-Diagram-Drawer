@@ -160,7 +160,8 @@ const Canvas = forwardRef(({
           y: y - (h * elementScale) / 2,
           width: w,
           height: h,
-          text: 'Entity'
+          text: 'Entity',
+          fontSize: 16
         }
         addElement(newElement)
         setTool('select')
@@ -173,7 +174,8 @@ const Canvas = forwardRef(({
           width: w,
           height: h,
           text: 'Attribute',
-          isKey: false
+          isKey: false,
+          fontSize: 16
         }
         addElement(newElement)
         setTool('select')
@@ -186,7 +188,8 @@ const Canvas = forwardRef(({
           width: w,
           height: h,
           text: 'Attribute',
-          isKey: true
+          isKey: true,
+          fontSize: 16
         }
         addElement(newElement)
         setTool('select')
@@ -198,7 +201,8 @@ const Canvas = forwardRef(({
           y: y - (h * elementScale) / 2,
           width: w,
           height: h,
-          text: 'Relationship'
+          text: 'Relationship',
+          fontSize: 16
         }
         addElement(newElement)
         setTool('select')
@@ -376,14 +380,25 @@ const Canvas = forwardRef(({
       return false
     }
 
-    // Rule 2: Relationships can only connect to entities
+    // Rule 2: Attributes can only connect to entities
+    if (fromElement.type === 'attribute' && toElement.type !== 'entity') {
+      alert('⚠️ Invalid Connection\n\nAttributes can only connect to entities.')
+      return false
+    }
+
+    if (toElement.type === 'attribute' && fromElement.type !== 'entity') {
+      alert('⚠️ Invalid Connection\n\nAttributes can only connect to entities.')
+      return false
+    }
+
+    // Rule 3: Relationships can only connect to entities
     if (fromElement.type === 'relationship' && toElement.type !== 'entity') {
-      alert('⚠️ Invalid Connection\n\nRelationships can only connect to entities.\nPlease connect relationships to entities only.')
+      alert('⚠️ Invalid Connection\n\nRelationships can only connect to entities.')
       return false
     }
 
     if (toElement.type === 'relationship' && fromElement.type !== 'entity') {
-      alert('⚠️ Invalid Connection\n\nRelationships can only connect to entities.\nPlease connect relationships to entities only.')
+      alert('⚠️ Invalid Connection\n\nRelationships can only connect to entities.')
       return false
     }
 
@@ -436,15 +451,16 @@ const Canvas = forwardRef(({
     setTempConnection(null)
   }
 
-  const measureTextWidth = (text) => {
+  const measureTextWidth = (text, fontSize = 16) => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
-    ctx.font = '500 14px sans-serif'
+    ctx.font = `500 ${fontSize}px sans-serif`
     return ctx.measureText(text).width
   }
 
   const handleTextChange = (element, newText) => {
-    const textWidth = measureTextWidth(newText)
+    const fontSize = element.fontSize || 16
+    const textWidth = measureTextWidth(newText, fontSize)
 
     // Minimum rendered width needed per element type
     let neededRenderedWidth

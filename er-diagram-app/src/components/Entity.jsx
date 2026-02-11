@@ -44,9 +44,10 @@ function Entity({ element, isSelected, onMouseDown, onClick, onTextChange }) {
           onKeyDown={handleKeyDown}
           autoFocus
           className="element-input"
+          style={{ fontSize: element.fontSize || 16 }}
         />
       ) : (
-        <span className="element-text">{element.text}</span>
+        <span className="element-text" style={{ fontSize: element.fontSize || 16 }}>{element.text}</span>
       )}
     </div>
   )

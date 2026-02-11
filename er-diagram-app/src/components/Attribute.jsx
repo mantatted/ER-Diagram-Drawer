@@ -44,9 +44,10 @@ function Attribute({ element, isSelected, onMouseDown, onClick, onTextChange }) 
           onKeyDown={handleKeyDown}
           autoFocus
           className="element-input"
+          style={{ fontSize: element.fontSize || 16 }}
         />
       ) : (
-        <span className={`element-text ${element.isKey ? 'underline' : ''}`}>
+        <span className={`element-text ${element.isKey ? 'underline' : ''}`} style={{ fontSize: element.fontSize || 16 }}>
           {element.text}
         </span>
       )}

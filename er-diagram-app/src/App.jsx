@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import Toolbar from './components/Toolbar'
 import Canvas from './components/Canvas'
+import PropertiesBar from './components/PropertiesBar'
 import { exportToPNG, exportToPDF } from './utils/export'
 
 function App() {
@@ -217,8 +218,9 @@ function App() {
     }
   }
 
-  const handleExportPNG = () => {
-    exportToPNG(canvasRef.current)
+  const handleExportPNG = (scale) => {
+    setShowResolutionModal(false)
+    exportToPNG(canvasRef.current, { scale, elements, elementScale })
   }
 
   const handleExportPDF = () => {
@@ -238,6 +240,7 @@ function App() {
   }
 
   const [showExportDropdown, setShowExportDropdown] = useState(false)
+  const [showResolutionModal, setShowResolutionModal] = useState(false)
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -249,6 +252,15 @@ function App() {
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [showExportDropdown])
+
+  useEffect(() => {
+    if (!showResolutionModal) return
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setShowResolutionModal(false)
+    }
+    document.addEventListener('keydown', handleEsc)
+    return () => document.removeEventListener('keydown', handleEsc)
+  }, [showResolutionModal])
 
   return (
     <div className="app">
@@ -280,7 +292,7 @@ function App() {
             </button>
             {showExportDropdown && (
               <div className="export-dropdown">
-                <button onClick={() => { handleExportPNG(); setShowExportDropdown(false); }}>
+                <button onClick={() => { setShowResolutionModal(true); setShowExportDropdown(false); }}>
                   🖼️ PNG
                 </button>
                 <button onClick={() => { handleExportPDF(); setShowExportDropdown(false); }}>
@@ -292,14 +304,19 @@ function App() {
         </div>
       </header>
 
+      <PropertiesBar
+        elements={elements}
+        selectedElements={selectedElements}
+        updateElement={updateElement}
+        updateElements={updateElements}
+        deleteElement={deleteElement}
+        deleteElements={deleteElements}
+      />
+
       <div className="app-main">
         <Toolbar
           tool={tool}
           setTool={setTool}
-          selectedElements={selectedElements}
-          elements={elements}
-          onDeleteElement={deleteElement}
-          onDeleteElements={deleteElements}
           zoom={zoom}
           onResetZoom={handleResetZoom}
           onClearAll={clearCanvas}
@@ -330,6 +347,32 @@ function App() {
           pasteClipboard={pasteClipboard}
         />
       </div>
+
+      {showResolutionModal && (
+        <div className="modal-overlay" onClick={() => setShowResolutionModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3>Export PNG</h3>
+            <p>Select resolution quality:</p>
+            <div className="resolution-options">
+              <button className="resolution-btn high" onClick={() => handleExportPNG(3)}>
+                <span className="resolution-label">High</span>
+                <span className="resolution-desc">3x - Best quality</span>
+              </button>
+              <button className="resolution-btn average" onClick={() => handleExportPNG(2)}>
+                <span className="resolution-label">Average</span>
+                <span className="resolution-desc">2x - Balanced</span>
+              </button>
+              <button className="resolution-btn low" onClick={() => handleExportPNG(1)}>
+                <span className="resolution-label">Low</span>
+                <span className="resolution-desc">1x - Smaller file</span>
+              </button>
+            </div>
+            <button className="modal-cancel-btn" onClick={() => setShowResolutionModal(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
